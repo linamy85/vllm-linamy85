@@ -109,6 +109,8 @@ pub struct EngineCoreOutput {
     pub prefill_stats: Option<PrefillStats>,
     #[serde(default)]
     pub routed_experts: Option<OpaqueValue>,
+    #[serde(default)]
+    pub per_request_kv_cache_bytes: Option<u64>,
     /// Number of NaNs seen in logits. Values above zero indicate corruption.
     #[serde(default)]
     pub num_nans_in_logits: u32,

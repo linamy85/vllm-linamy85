@@ -1869,6 +1869,11 @@ class Scheduler(SchedulerInterface):
 
             # Get prompt logprobs for this request.
             prompt_logprobs_tensors = prompt_logprobs_dict.get(req_id)
+            
+            per_request_kv_cache_bytes = None
+            if model_runner_output.per_request_kv_cache_bytes is not None:
+                per_request_kv_cache_bytes = model_runner_output.per_request_kv_cache_bytes.get(req_id)
+
             if should_emit_output:
                 # Add EngineCoreOutput for this Request.
                 outputs[request.client_index].append(
@@ -1886,6 +1891,7 @@ class Scheduler(SchedulerInterface):
                         ec_transfer_params=ec_transfer_params,
                         trace_headers=request.trace_headers,
                         routed_experts=routed_experts,
+                        per_request_kv_cache_bytes=per_request_kv_cache_bytes,
                         num_nans_in_logits=request.num_nans_in_logits,
                     )
                 )

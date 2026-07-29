@@ -235,6 +235,9 @@ class RequestStateStats:
     # Track if this request is corrupted (NaNs in logits)
     is_corrupted: bool = False
 
+    # Track latest KV cache bytes
+    kv_cache_bytes: int = 0
+
 
 @dataclass
 class FinishedRequestStats:
@@ -253,6 +256,7 @@ class FinishedRequestStats:
     mean_time_per_output_token: float = 0.0
     is_corrupted: bool = False
     num_cached_tokens: int = 0
+    kv_cache_bytes: int = 0
 
 
 @dataclass
@@ -360,6 +364,7 @@ class IterationStats:
         self.time_to_first_tokens_iter: list[float] = []
         self.inter_token_latencies_iter: list[float] = []
         self.num_corrupted_reqs: int = 0
+        self.per_request_kv_cache_bytes: list[int] = []
 
     def __repr__(self) -> str:
         field_to_value_str = ", ".join(f"{k}={v}" for k, v in vars(self).items())
@@ -404,6 +409,10 @@ class IterationStats:
             and output.num_nans_in_logits > 0
         ):
             req_stats.is_corrupted = True
+
+        if output.per_request_kv_cache_bytes is not None:
+            req_stats.kv_cache_bytes = output.per_request_kv_cache_bytes
+            self.per_request_kv_cache_bytes.append(output.per_request_kv_cache_bytes)
 
         # Process request-level engine core events
         if output.events is not None:
@@ -496,6 +505,7 @@ class IterationStats:
             mean_time_per_output_token=mean_time_per_output_token,
             is_corrupted=req_stats.is_corrupted,
             num_cached_tokens=num_cached_tokens,
+            kv_cache_bytes=req_stats.kv_cache_bytes,
         )
         self.finished_requests.append(finished_req)
 

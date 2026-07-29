@@ -283,6 +283,8 @@ class ModelRunnerOutput:
         default_factory=dict
     )
 
+    per_request_kv_cache_bytes: dict[str, int] | None = None
+
     # [num_reqs, hidden_size]
     pooler_output: list[torch.Tensor | None] | None = None
 

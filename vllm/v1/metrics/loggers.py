@@ -568,6 +568,26 @@ class PrometheusStatLogger(AggregateStatLoggerBase):
             gauge_kv_cache_usage, per_engine_labelvalues
         )
 
+        histogram_kv_cache_bytes = self._histogram_cls(
+            name="vllm:per_request_kv_cache_bytes",
+            documentation="Physical KV cache bytes consumed by the request.",
+            labelnames=labelnames,
+            buckets=[
+                100 * 1024,              # 100 KB
+                500 * 1024,              # 500 KB
+                1 * 1024 * 1024,         # 1 MB
+                5 * 1024 * 1024,         # 5 MB
+                10 * 1024 * 1024,        # 10 MB
+                50 * 1024 * 1024,        # 50 MB
+                100 * 1024 * 1024,       # 100 MB
+                500 * 1024 * 1024,       # 500 MB
+                1 * 1024 * 1024 * 1024,  # 1 GB
+            ]
+        )
+        self.histogram_kv_cache_bytes = create_metric_per_engine(
+            histogram_kv_cache_bytes, per_engine_labelvalues
+        )
+
         if envs.VLLM_COMPUTE_NANS_IN_LOGITS:
             counter_corrupted_requests = self._counter_cls(
                 name="vllm:corrupted_requests",
@@ -1211,6 +1231,7 @@ class PrometheusStatLogger(AggregateStatLoggerBase):
             self.histogram_max_num_generation_tokens_request[engine_idx].observe(
                 max_gen_tokens
             )
+
         for n_param in iteration_stats.n_params_iter:
             self.histogram_n_request[engine_idx].observe(n_param)
         for ttft in iteration_stats.time_to_first_tokens_iter:
@@ -1219,6 +1240,10 @@ class PrometheusStatLogger(AggregateStatLoggerBase):
             self.histogram_inter_token_latency[engine_idx].observe(itl)
 
         for finished_request in iteration_stats.finished_requests:
+            if finished_request.kv_cache_bytes > 0:
+                self.histogram_kv_cache_bytes[engine_idx].observe(
+                    finished_request.kv_cache_bytes
+                )
             self.counter_request_success[finished_request.finish_reason][
                 engine_idx
             ].inc()
